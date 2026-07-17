@@ -67,3 +67,60 @@ Clone the repository:
 git clone https://github.com/artemsaitov/online-boutique-kubernetes-deployment.git
 cd online-boutique-kubernetes-deployment
 git switch portfolio-deployment
+
+## Monitoring with Prometheus and Grafana
+
+I installed the `kube-prometheus-stack` Helm chart to add monitoring for the local Kubernetes cluster.
+
+The stack includes:
+
+- Prometheus
+- Grafana
+- Alertmanager
+- Prometheus Operator
+- kube-state-metrics
+- node exporter
+
+The standard Helm repository repeatedly timed out while downloading the repository index, even though the URL was reachable with `curl`.
+
+To work around this issue, I installed the chart directly from the Prometheus Community OCI registry:
+
+```bash
+helm install monitoring \
+  oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --values portfolio-k8s/monitoring-values.yaml \
+  --timeout 15m
+```
+
+Verify the monitoring workloads:
+
+```bash
+kubectl get pods -n monitoring
+```
+
+Access Grafana locally:
+
+```bash
+kubectl port-forward \
+  -n monitoring \
+  service/monitoring-grafana \
+  3000:80
+```
+
+Grafana is then available at:
+
+```text
+http://localhost:3000
+```
+
+The Grafana dashboards were used to monitor the `online-boutique` namespace, including:
+
+- Pod network receive and transmit rates
+- Packet activity
+- Pod resource usage
+- Workload health
+- Kubernetes cluster metrics
+
+The Online Boutique load generator continuously creates traffic, making it possible to observe live application activity in Grafana.
