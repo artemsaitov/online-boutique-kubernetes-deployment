@@ -124,3 +124,5 @@ The Grafana dashboards were used to monitor the `online-boutique` namespace, inc
 - Kubernetes cluster metrics
 
 The Online Boutique load generator continuously creates traffic, making it possible to observe live application activity in Grafana.
+![Grafana dashboard for the Online Boutique namespace](docs/images/grafana-online-boutique.png)
+
