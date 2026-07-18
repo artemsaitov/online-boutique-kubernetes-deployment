@@ -168,3 +168,22 @@ kubectl apply -k portfolio-k8s/overlays/local
 ```
 
 The initial overlay referenced a manifest outside the Kustomize directory tree, which Kustomize blocked for security. I resolved this by introducing a standard base-and-overlay directory structure.
+
+## Horizontal Scaling Test
+
+The `cartservice` Deployment was scaled from one replica to three:
+
+```bash
+kubectl scale deployment cartservice \
+  -n online-boutique \
+  --replicas=3
+
+Kubernetes created three healthy Pods, and the cartservice EndpointSlice automatically updated to include all three Pod IP addresses.
+
+All cart Pods were then deleted during a self-healing test. The Deployment recreated the desired three replicas automatically.
+
+After validation, the Deployment was scaled back to one replica:
+kubectl scale deployment cartservice \
+  -n online-boutique \
+  --replicas=1
+  This demonstrated horizontal scaling, Service endpoint updates, and Deployment self-healing.

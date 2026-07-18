@@ -63,3 +63,21 @@ kubectl port-forward \
 ```
 
 The Kubernetes networking dashboard was filtered to the `online-boutique` namespace and displayed live network activity for the application Pods.
+
+## Horizontal Scaling Test
+
+The `cartservice` Deployment was scaled from one replica to three:
+
+```bash
+kubectl scale deployment cartservice \
+  -n online-boutique \
+  --replicas=3
+
+
+All cart Pods were then deleted during a self-healing test. The Deployment recreated the desired three replicas automatically.
+
+After validation, the Deployment was scaled back to one replica:
+kubectl scale deployment cartservice \
+  -n online-boutique \
+  --replicas=1
+  This demonstrated horizontal scaling, Service endpoint updates, and Deployment self-healing.
