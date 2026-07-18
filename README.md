@@ -187,3 +187,119 @@ kubectl scale deployment cartservice \
   -n online-boutique \
   --replicas=1
   This demonstrated horizontal scaling, Service endpoint updates, and Deployment self-healing.
+
+  ## Readiness Failure and Rollback Tests
+
+### Readiness Probe Failure Test
+
+I temporarily changed the `cartservice` readiness probe to use an invalid gRPC port:
+
+```yaml
+readinessProbe:
+  grpc:
+    port: 9999
+  periodSeconds: 5
+  failureThreshold: 1
+```
+
+The temporary patch was applied directly to the live Deployment:
+
+```bash
+kubectl patch deployment cartservice \
+  -n online-boutique \
+  --type=strategic \
+  --patch-file /tmp/cartservice-bad-readiness.yaml
+```
+
+The new Pod started successfully but remained:
+
+```text
+0/1 Running
+```
+
+This showed that a running container is not necessarily ready to receive traffic.
+
+During the failed rollout, Kubernetes kept the previous healthy Pod available instead of immediately terminating it. The Deployment waited because the new Pod could not pass its readiness probe.
+
+The EndpointSlice also reflected the Pod readiness state, ensuring that the unready Pod was not used as a Service backend.
+
+The correct Git-managed configuration was restored with:
+
+```bash
+kubectl apply -k portfolio-k8s/overlays/local
+```
+
+After reapplying the Kustomize overlay, the Deployment returned to:
+
+```text
+1/1 Running
+```
+
+This test demonstrated:
+
+- The difference between container status and Pod readiness
+- How readiness probes control Service traffic
+- How rolling updates preserve availability when a new Pod is unhealthy
+- How declarative configuration can restore the intended state
+
+### Failed Image Rollout and Rollback Test
+
+I then simulated a failed deployment by assigning a nonexistent container image to `cartservice`:
+
+```bash
+kubectl set image deployment/cartservice \
+  -n online-boutique \
+  server=us-central1-docker.pkg.dev/google-samples/microservices-demo/cartservice:bad-version
+```
+
+Kubernetes created a new Pod, but the image could not be downloaded. The Pod entered a state such as:
+
+```text
+ErrImagePull
+ImagePullBackOff
+```
+
+The previous healthy Pod remained available while the new rollout failed.
+
+I reviewed the rollout history:
+
+```bash
+kubectl rollout history deployment/cartservice \
+  -n online-boutique
+```
+
+The failed rollout was reverted with:
+
+```bash
+kubectl rollout undo deployment/cartservice \
+  -n online-boutique
+```
+
+Kubernetes restored the previous working revision.
+
+Because the Deployment is normally managed with `kubectl apply` and Kustomize, the rollback displayed a warning that the `last-applied-configuration` annotation would not be updated.
+
+To restore declarative consistency, I reapplied the version-controlled overlay:
+
+```bash
+kubectl apply -k portfolio-k8s/overlays/local
+```
+
+The final state was verified with:
+
+```bash
+kubectl rollout status deployment/cartservice \
+  -n online-boutique
+
+kubectl get pods \
+  -n online-boutique \
+  -l app=cartservice
+```
+
+This test demonstrated:
+
+- Failed image-pull detection
+- Safe rolling-update behavior
+- Deployment revision history
+- Imperative rollback with `kubectl rollout undo`
+- Restoring Git-managed desired state with Kustomize

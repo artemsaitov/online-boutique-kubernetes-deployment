@@ -81,3 +81,48 @@ kubectl scale deployment cartservice \
   -n online-boutique \
   --replicas=1
   This demonstrated horizontal scaling, Service endpoint updates, and Deployment self-healing.
+
+  ## Readiness and Rollback Tests
+
+### Failed Readiness Probe
+
+The `cartservice` readiness probe was temporarily changed to use invalid gRPC port `9999`.
+
+The replacement Pod started but remained `0/1 Running`, meaning the container was running but was not ready to receive traffic.
+
+Kubernetes kept the previous healthy Pod active while the new rollout was unable to complete. The unready Pod was not treated as a ready Service endpoint.
+
+The correct configuration was restored with:
+
+```bash
+kubectl apply -k portfolio-k8s/overlays/local
+```
+
+The Deployment returned to one healthy `1/1 Running` Pod.
+
+### Failed Image and Rollback
+
+A nonexistent image tag was assigned to `cartservice`:
+
+```bash
+kubectl set image deployment/cartservice \
+  -n online-boutique \
+  server=us-central1-docker.pkg.dev/google-samples/microservices-demo/cartservice:bad-version
+```
+
+The replacement Pod entered `ErrImagePull` or `ImagePullBackOff`, while the previous healthy Pod remained available.
+
+The failed revision was rolled back:
+
+```bash
+kubectl rollout undo deployment/cartservice \
+  -n online-boutique
+```
+
+Because the Deployment is managed declaratively, the Kustomize overlay was reapplied afterward:
+
+```bash
+kubectl apply -k portfolio-k8s/overlays/local
+```
+
+This restored the live cluster to the Git-managed desired state.
