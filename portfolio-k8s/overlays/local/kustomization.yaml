@@ -12,3 +12,6 @@ labels:
       environment: local
       portfolio-project: online-boutique
     includeSelectors: false
+
+patches:
+  - path: cartservice-replicas.yaml
