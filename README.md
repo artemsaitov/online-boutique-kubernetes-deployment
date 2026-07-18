@@ -126,3 +126,45 @@ The Grafana dashboards were used to monitor the `online-boutique` namespace, inc
 The Online Boutique load generator continuously creates traffic, making it possible to observe live application activity in Grafana.
 ![Grafana dashboard for the Online Boutique namespace](docs/images/grafana-online-boutique.png)
 
+## Kustomize Deployment
+
+To make the Kubernetes configuration reusable, I created a Kustomize base and a local overlay:
+
+```text
+portfolio-k8s/
+├── base/
+│   ├── kubernetes-manifests.yaml
+│   └── kustomization.yaml
+└── overlays/
+    └── local/
+        └── kustomization.yaml
+```
+
+The local overlay:
+
+- Deploys resources into the `online-boutique` namespace
+- Adds portfolio and environment labels
+- Reuses the common base manifest
+- Avoids editing Google’s generated release manifest directly
+
+Preview the rendered configuration:
+
+```bash
+kubectl kustomize portfolio-k8s/overlays/local
+```
+
+Validate it against the Kubernetes API without changing resources:
+
+```bash
+kubectl apply \
+  -k portfolio-k8s/overlays/local \
+  --dry-run=server
+```
+
+Deploy the overlay:
+
+```bash
+kubectl apply -k portfolio-k8s/overlays/local
+```
+
+The initial overlay referenced a manifest outside the Kustomize directory tree, which Kustomize blocked for security. I resolved this by introducing a standard base-and-overlay directory structure.
