@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: online-boutique
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      managed-by: kustomize
+      environment: local
+      portfolio-project: online-boutique
+    includeSelectors: false
