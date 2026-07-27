@@ -1,0 +1,13 @@
+aws_region         = "us-east-1"
+aws_profile        = "default"
+project_name       = "online-boutique"
+environment        = "dev"
+cluster_name       = "online-boutique-dev"
+kubernetes_version = "1.35"
+
+vpc_cidr = "10.20.0.0/16"
+
+node_instance_types = ["t3.small"]
+node_desired_size   = 2
+node_min_size       = 1
+node_max_size       = 3
